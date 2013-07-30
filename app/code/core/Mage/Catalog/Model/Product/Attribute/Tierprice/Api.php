@@ -112,53 +112,60 @@ class Mage_Catalog_Model_Product_Attribute_Tierprice_Api extends Mage_Catalog_Mo
      *  @param      array $tierPrices
      *  @return     array
      */
-    public function prepareTierPrices($product, $tierPrices = null)
+    public function prepareTierPrices($product, $multiTierPrices = null)
     {
-        if (!is_array($tierPrices)) {
+        if (!is_array($multiTierPrices)) {
             return null;
         }
 
-        if (!is_array($tierPrices)) {
+        if (!is_array($multiTierPrices)) {
             $this->_fault('data_invalid', Mage::helper('catalog')->__('Invalid Tier Prices'));
         }
 
         $updateValue = array();
 
-        foreach ($tierPrices as $tierPrice) {
-            if (!is_array($tierPrice)
-                || !isset($tierPrice['qty'])
-                || !isset($tierPrice['price'])) {
+        foreach ($multiTierPrices as $tierPrices) {
+
+            if (!is_array($tierPrices)) {
                 $this->_fault('data_invalid', Mage::helper('catalog')->__('Invalid Tier Prices'));
             }
 
-            if (!isset($tierPrice['website']) || $tierPrice['website'] == 'all') {
-                $tierPrice['website'] = 0;
-            } else {
-                try {
-                    $tierPrice['website'] = Mage::app()->getWebsite($tierPrice['website'])->getId();
-                } catch (Mage_Core_Exception $e) {
-                    $tierPrice['website'] = 0;
+            foreach ($tierPrices as $tierPrice) {
+                if (!is_array($tierPrice)
+                    || !isset($tierPrice['qty'])
+                    || !isset($tierPrice['price'])) {
+                    $this->_fault('data_invalid', Mage::helper('catalog')->__('Invalid Tier Prices'));
                 }
-            }
 
-            if (intval($tierPrice['website']) > 0 && !in_array($tierPrice['website'], $product->getWebsiteIds())) {
-                $this->_fault('data_invalid', Mage::helper('catalog')->__('Invalid tier prices. The product is not associated to the requested website.'));
-            }
+                if (!isset($tierPrice['website']) || $tierPrice['website'] == 'all') {
+                    $tierPrice['website'] = 0;
+                } else {
+                    try {
+                        $tierPrice['website'] = Mage::app()->getWebsite($tierPrice['website'])->getId();
+                    } catch (Mage_Core_Exception $e) {
+                        $tierPrice['website'] = 0;
+                    }
+                }
 
-            if (!isset($tierPrice['customer_group_id'])) {
-                $tierPrice['customer_group_id'] = 'all';
-            }
+                if (intval($tierPrice['website']) > 0 && !in_array($tierPrice['website'], $product->getWebsiteIds())) {
+                    $this->_fault('data_invalid', Mage::helper('catalog')->__('Invalid tier prices. The product is not associated to the requested website.'));
+                }
 
-            if ($tierPrice['customer_group_id'] == 'all') {
-                $tierPrice['customer_group_id'] = Mage_Customer_Model_Group::CUST_GROUP_ALL;
-            }
+                if (!isset($tierPrice['customer_group_id'])) {
+                    $tierPrice['customer_group_id'] = 'all';
+                }
 
-            $updateValue[] = array(
-                'website_id' => $tierPrice['website'],
-                'cust_group' => $tierPrice['customer_group_id'],
-                'price_qty'  => $tierPrice['qty'],
-                'price'      => $tierPrice['price']
-            );
+                if ($tierPrice['customer_group_id'] == 'all') {
+                    $tierPrice['customer_group_id'] = Mage_Customer_Model_Group::CUST_GROUP_ALL;
+                }
+
+                $updateValue[] = array(
+                    'website_id' => $tierPrice['website'],
+                    'cust_group' => $tierPrice['customer_group_id'],
+                    'price_qty'  => $tierPrice['qty'],
+                    'price'      => $tierPrice['price']
+                );
+            }
         }
 
         return $updateValue;
